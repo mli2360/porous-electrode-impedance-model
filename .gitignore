@@ -166,3 +166,6 @@ out
 script*.py
 *.sh
 *.ipynb
+to_cluster
+from_cluster
+personal
