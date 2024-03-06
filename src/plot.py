@@ -35,6 +35,9 @@ def create_impedance_plot(measured_eis, predicted_eis, plot_types, save_dir,
         plot_filename = plot_name + '.' + extension
         plot_path = os.path.join(save_dir, plot_filename)
         plt.savefig(plot_path, format=extension)
+    
+    # Close the plot to free up memory resources
+    plt.close(fig)  # Important: Close the figure at the end of the function
 
 
 def plot_nyquist(ax, measured_eis, predicted_eis):

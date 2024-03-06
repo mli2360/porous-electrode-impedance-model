@@ -50,9 +50,9 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
     print(f"Current Parameters - {x_current}")
     print('\n')
 
-    burn_temperatures = np.linspace(settings["burn_temperature"],
-                                    settings["temperature"],
-                                    settings["burn_length"])
+    burn_temperatures = np.exp(np.linspace(np.log(settings["burn_temperature"]),
+                                    np.log(settings["temperature"]),
+                                    settings["burn_length"]))
     state = "burn"
     # First do mcmc burn-in wiht a higher temperature profile
     for idx in range(settings["burn_length"]):

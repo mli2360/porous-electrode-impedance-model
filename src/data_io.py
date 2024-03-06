@@ -1172,18 +1172,18 @@ def pack_inputs(inputs):
     
     # Highest level
     x = np.log([inputs["Electrode"]["r_bulk"]])
-    delx = np.array([0.25])
+    delx = np.array([0.05])
 
     # Series element in Electrode scale
     x = np.append(x, np.log([inputs["Electrode"]["r_electrolyte_ion"],
                              inputs["Electrode"]["r_electrolyte_electron"]]))
-    delx = np.append(delx, np.full(2, 0.25))
+    delx = np.append(delx, np.full(2, 0.10))
 
     
     # Parallel element in Electrode scale. This is just another circuit, so we
     # start with the basic circuit element
     x = np.append(x, np.log(inputs["Electrode"]["c_electrolyte"]))
-    delx = np.append(delx, np.full(1, 0.25))
+    delx = np.append(delx, np.full(1, 0.10))
     
     # The basic circuit element is in parallel with a particle network
     # Connection probabilities and network parameters
@@ -1199,7 +1199,7 @@ def pack_inputs(inputs):
         x, np.concatenate((connectivity_particle_network, ln_R_particle_network))
     )
     delx = np.append(
-        delx, np.concatenate((np.full(n_variables, 0.05), np.full(n_variables, 0.25)))
+        delx, np.concatenate((np.full(n_variables, 0.025), np.full(n_variables, 0.10)))
     )
 
     # Variations of the particle network parameters
@@ -1217,7 +1217,7 @@ def pack_inputs(inputs):
                             inputs["Particle"]["l_part"][idx],
                             inputs["Particle"]["d_part"][idx],])
         x = np.append(x, x_particle)
-        delx = np.append(delx, np.full(4, 0.25))
+        delx = np.append(delx, np.full(4, 0.10))
         
         # variations on the particle scale
         if bool_spatial_variations["Particle"]["d_part"]:
