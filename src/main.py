@@ -43,6 +43,7 @@ def main(config_file, data_file):
         n_basis=inputs["Function"]["n_basis"],
         inputs=inputs
     )
+    print(f"Initial objective value {objective_0}")
 
     # Plot initial system
     if inputs["Simulation"]["plot"]:
