@@ -163,5 +163,6 @@ data
 history
 test
 out
-script_*.py
+script*.py
+*.sh
 *.ipynb
