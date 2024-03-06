@@ -704,6 +704,7 @@ def check_inputs_objective(inputs):
         'r_network_min', 'r_network_max', 'r_network_bounds_temperature',
         'r_ct_min', 'r_ct_max', 'r_ct_bounds_temperature',
         'r_lyte_min', 'r_lyte_max', 'r_lyte_bounds_temperature',
+        'l_part_min', 'l_part_max', 'l_part_bounds_temperature',
         'connectivity_bounds_temperature',
         'basis_function_elastic_weights', 'spatial_basis_scale',
     ]
