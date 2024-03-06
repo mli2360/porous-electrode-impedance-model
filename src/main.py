@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 from datetime import datetime
+import shutil
 
 from src.data_io import (read_BioLogic_data,
                          simplify_EIS_dataset,
@@ -43,6 +44,10 @@ def main(config_file, data_file):
         os.makedirs(save_dir)
     inputs["Simulation"]["save_directory"] = save_dir
 
+    # Copy the configuration file
+    path_2_new_config_file = os.path.join(save_dir, 'configs.ini')
+    shutil.copy2(config_file, path_2_new_config_file)
+    
     # Prepare input parameters
     x0, delx, bool_spatial_variations = pack_inputs(inputs)
 
