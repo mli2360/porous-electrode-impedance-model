@@ -5,39 +5,74 @@ import matplotlib.pyplot as plt
 def create_impedance_plot(measured_eis, predicted_eis, plot_types, save_dir,
                           plot_name, extensions=['jpg']):
     """
-    plots the measured eis and the predicted eis versus each other for a list of different plot types. Once the plot has been made, it will be saved in a directory, under a plot name and saved with different extensions
-    
-    Note that the measured eis and predicted eis are pandas.Dataframe types with the three fields `freq/Hz`, `Re(Z)/Ohm`, and `-Im(Z)/Ohm`
+    Generates impedance plots comparing measured and predicted EIS data for
+    specified plot types, saves the plots to the specified directory under a
+    given name with specified file extensions.
+
+    Parameters
+    ----------
+    measured_eis : pandas.DataFrame
+        DataFrame containing the measured EIS data with fields 'freq/Hz',
+        'Re(Z)/Ohm', and '-Im(Z)/Ohm'.
+    predicted_eis : pandas.DataFrame
+        DataFrame containing the predicted EIS data with fields 'freq/Hz',
+        'Re(Z)/Ohm', and '-Im(Z)/Ohm'.
+    plot_types : list of str
+        List of strings indicating the types of plots to create (e.g.,
+        'Nyquist', 'Bode-magnitude', 'Bode-phase').
+    save_dir : str
+        Directory path where the plots will be saved.
+    plot_name : str
+        Base name for the plot files.
+    extensions : list of str, optional
+        List of file extensions for saving plots (default is ['jpg']).
+
+    Raises
+    ------
+    ValueError
+        If an unknown plot type is provided.
+
+    Examples
+    --------
+    >>> measured_eis = pandas.DataFrame(data={'freq/Hz': [1, 10, 100],
+    'Re(Z)/Ohm': [10, 5, 2], '-Im(Z)/Ohm': [5, 10, 15]})
+    >>> predicted_eis = pandas.DataFrame(data={'freq/Hz': [1, 10, 100],
+    'Re(Z)/Ohm': [8, 6, 3], '-Im(Z)/Ohm': [6, 8, 12]})
+    >>> create_impedance_plot(measured_eis, predicted_eis, ['Nyquist',
+    'Bode-magnitude'], '/plots', 'impedance_analysis')
     """
 
-    fig, axes = plt.subplots(1, len(plot_types), figsize=(6*len(plot_types), 6))
-    if len(plot_types) == 1:
-        axes = [axes]
+    # Create subplots based on the number of plot types
+    fig, axes = plt.subplots(1, len(plot_types),
+                             figsize=(6 * len(plot_types), 6))
+    # Ensure axes is always iterable
+    axes = np.atleast_1d(axes)
     
+    # Mapping from plot type to plotting function
     plot_functions = {
-        'Nyquist' : plot_nyquist,
-        'Bode-magnitude' : plot_bode_magnitude,
-        'Bode-phase' : plot_bode_phase,
+        'Nyquist': plot_nyquist,
+        'Bode-magnitude': plot_bode_magnitude,
+        'Bode-phase': plot_bode_phase,
     }
 
-    # Loop through each plot type and create corresponding plot
+    # Create each requested plot
     for ax, plot_type in zip(axes, plot_types):
         if plot_type in plot_functions:
             plot_functions[plot_type](ax, measured_eis, predicted_eis)
         else:
             raise ValueError(f"No plotting function for '{plot_type}'")
 
-    # Tight layout to ensure no overlap
+    # Adjust layout to prevent overlap
     plt.tight_layout()
 
-    # Save the figure
+    # Save the plots with each specified file extension
     for extension in extensions:
-        plot_filename = plot_name + '.' + extension
+        plot_filename = f"{plot_name}.{extension}"
         plot_path = os.path.join(save_dir, plot_filename)
-        plt.savefig(plot_path, format=extension)
+        fig.savefig(plot_path, format=extension)
     
-    # Close the plot to free up memory resources
-    plt.close(fig)  # Important: Close the figure at the end of the function
+    # Close the figure to free resources
+    plt.close(fig)
 
 
 def plot_nyquist(ax, measured_eis, predicted_eis):
