@@ -4,6 +4,7 @@ import numpy as np
 import chardet
 import configparser
 import ast
+import shutil
 from scipy.interpolate import interp1d
 
 from src.electrode import pull_particle_network_relevant_numbers
@@ -459,6 +460,19 @@ def check_inputs_simulation(inputs):
             if value == 'out':
                 if not os.path.exists(value):
                     os.makedirs(value)
+                else:
+                    # Get all the files and subdirectories in the directory
+                    for filename in os.listdir(value):
+                        file_path = os.path.join(value, filename)
+                        try:
+                            # If it is a file, remove it
+                            if os.path.isfile(file_path) or os.path.islink(file_path):
+                                os.unlink(file_path)
+                            # If it is a directory, delete it and all its contents
+                            elif os.path.isdir(file_path):
+                                shutil.rmtree(file_path)
+                        except Exception as e:
+                            print(f'Failed to delete {file_path}. Reason: {e}')
             else:
                 if not os.path.isdir(value):
                     raise ValueError(f"Specified value for field '{field}' "
