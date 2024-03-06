@@ -444,14 +444,41 @@ def calculate_connectivity_complexity(connection_source_target,
                                   connection_target_target])
 
     # Apply transformation to quantify complexity based on connection probabilities
-    complexity = np.sum(-np.cos(2 * np.pi * connections) + 1)
+    complexity_0_or_1 = np.sum(-np.cos(2 * np.pi * connections) + 1)
     
     # Determine the total number of connections for normalization
     n_connections = len(connection_source_target) + \
         len(connection_drain_target) + len(connection_target_target)
     
+    # complexity exists if the interparticle connections are significantly
+    # greater than the number of connections between the particles and the
+    # backbone
+    complexity_interparticle = np.exp(np.sum(connection_target_target) /
+        (np.sum(connection_source_target)+np.sum(connection_drain_target)))
+
+    # define n_particles from the input
+    n_particles = len(connection_source_target)
+
+    complexity_circular = 0
+    already_compared = []
+    for idx in range(len(connection_target_target)):
+        if idx not in already_compared:
+            particle_curr = idx // 2
+            particle_pair = idx % 2
+            if particle_pair >= particle_curr:
+                particle_pair += 1
+            
+            idx_other = particle_pair * 2 + particle_curr
+            epsilon = 1e-2
+            complexity_circular += (1
+                                    / np.min(((1-connection_target_target[idx]+epsilon), 0))
+                                    / np.min(((1-connection_target_target[idx_other]+epsilon), 0)))
+            
+    complexity_circular /= n_particles * (n_particles - 1) / 2
+        
+
     # Return the average complexity normalized by the number of connections
-    return complexity / n_connections
+    return complexity_0_or_1 / n_connections + complexity_interparticle
 
 
 def calculate_spatial_function_complexity(function_type, n_basis,
