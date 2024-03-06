@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import entropy
-from scipy.spatial.distance import cdist
 
 from src.electrode import calculate_porous_electrode_impedance
 from src.particle_network import pull_particle_network_relevant_numbers
@@ -276,7 +274,9 @@ def calculate_misfit_residual(measured_eis, predicted_eis, setting):
         
         # Combine errors and calculate RMS
         error = np.hstack(errors)
-        misfit_residual = np.sqrt(np.nanmean(error**2))
+        misfit_residual = np.nan_to_num(misfit_residual, nan=1e2)
+        misfit_residual = np.sqrt(np.mean(error**2))
+
     else:
         raise ValueError('Invalid setting. Choose "ReOnly", "ImOnly", or '
                          + '"ReIm".')
