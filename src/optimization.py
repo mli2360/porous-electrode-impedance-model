@@ -158,6 +158,29 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
                 # Use pickle.dump() to write the object to the file
                 pickle.dump(variables, file)
 
+    # plot and display final results
+    current_objective, predicted_eis_current = \
+        calculate_objective_function(x_current, *args)
+    best_objective, predicted_eis_best = \
+        calculate_objective_function(x_best, *args)
+    
+    print('\n')
+    print(f"Final Objective Value - {current_objective}")
+    print(f"Final Parmeters - {x_current}")
+    print('\n')
+    print(f"Best Objective Value - {best_objective}")
+    print(f"Best Parmeters - {x_best}")
+    print('\n')
+
+    plot_name = f"final_fit"
+    create_impedance_plot(data, predicted_eis_current, plot_types,
+                          plot_save_dir, plot_name=plot_name,
+                          extensions=['jpg', 'svg'])
+    plot_name = f"best_fit"
+    create_impedance_plot(data, predicted_eis_best, plot_types,
+                          plot_save_dir, plot_name=plot_name,
+                          extensions=['jpg', 'svg'])
+    
     samples = np.array(samples)
     acceptance_rate = n_accept / settings["chain_length"]
 
