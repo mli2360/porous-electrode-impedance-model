@@ -457,90 +457,44 @@ def calculate_connectivity_complexity(connection_source_target,
     # Interparticle complexity contrasting connections between particles and to
     # the backbone
     complexity_interparticle = np.exp(np.sum(connection_target_target) /
-        (np.sum(connection_source_target)+np.sum(connection_drain_target)))
+        (np.sum(connection_source_target)+np.sum(connection_drain_target))) - 1
 
     # Define the total number of particles for circular complexity calculation
     n_particles = len(connection_source_target)
     complexity_circular = 0  # Initial circular complexity
     already_compared = []  # Keeping track of compared index pairs to avoid redundancy
 
-    # Calculate circular complexity based on paired connection probabilities
-    for idx in range(len(connection_target_target)):
-        if idx not in already_compared:
-            # Index decompositions to identify particle pairs
-            particle_curr = idx // (n_particles-1)
-            particle_pair = idx % (n_particles-1)
-            if particle_pair >= particle_curr:
-                particle_pair += 1  # Adjusting for zero-based indexing
+    if n_particles >= 2:
+        # Calculate circular complexity based on paired connection probabilities
+        for idx in range(len(connection_target_target)):
+            if idx not in already_compared:
+                # Index decompositions to identify particle pairs
+                particle_curr = idx // (n_particles-1)
+                particle_pair = idx % (n_particles-1)
+                if particle_pair >= particle_curr:
+                    particle_pair += 1  # Adjusting for zero-based indexing
 
-            # Cross-index for symmetric connection
-            idx_other = particle_pair * (n_particles - 1) + particle_curr
-            epsilon = 1e-2  # Small value to avoid division by zero
+                # Cross-index for symmetric connection
+                idx_other = particle_pair * (n_particles - 1) + particle_curr
+                epsilon = 1e-2  # Small value to avoid division by zero
 
-            # Circular complexity calculation for particle pairs
-            complexity_circular += (1
-                / np.maximum((1-connection_target_target[idx]), epsilon)
-                / np.maximum((1-connection_target_target[idx_other]), epsilon))
+                # Circular complexity calculation for particle pairs
+                complexity_circular += (100
+                    / (1 + np.exp(-5*(connection_target_target[idx] - 1)))
+                    / (1 + np.exp(-5*(connection_target_target[idx_other] - 1)))
+                )
 
-            # Marking indices as compared
-            already_compared.extend([idx, idx_other])
+                # Marking indices as compared
+                already_compared.extend([idx, idx_other])
+        
+        # Final normalization of circular complexity
+        # Adjusting for total potential connections
+        complexity_circular /= (n_particles * (n_particles - 1) / 2)
     
-    # Final normalization of circular complexity
-    # Adjusting for total potential connections
-    complexity_circular /= (n_particles * (n_particles - 1) / 2)
-
     # Combine complexities for total measure
     total_complexity = complexity_0_or_1 + complexity_interparticle + complexity_circular
 
     return total_complexity
-
-
-def calculate_connectivity_complexity(connection_source_target,
-                                      connection_drain_target,
-                                      connection_target_target):
-    
-    
-    # Combine all connection probabilities into a single array
-    connections = np.concatenate([connection_source_target, connection_drain_target, connection_target_target])
-
-    # Initial complexity calculation based on negative cosine transformation
-    complexity_base = np.sum(-np.cos(2 * np.pi * connections) + 1)
-    n_connections = len(connection_source_target) + len(connection_drain_target) + len(connection_target_target)
-    complexity_base /= n_connections  # Normalizing by total number of connections
-
-    # Interparticle complexity contrasting connections between particles and to the backbone
-    complexity_interparticle = np.exp(np.sum(connection_target_target) / (np.sum(connection_source_target) + np.sum(connection_drain_target)))
-
-    # Define the total number of particles for circular complexity calculation
-    n_particles = len(connection_source_target)
-    complexity_circular = 0  # Initial circular complexity
-    already_compared = []  # Keeping track of compared index pairs to avoid redundancy
-
-    # Calculate circular complexity based on paired connection probabilities
-    for idx in range(len(connection_target_target)):
-        if idx not in already_compared:
-            # Index decompositions to identify particle pairs
-            particle_curr = idx // n_particles
-            particle_pair = idx % n_particles
-            if particle_pair >= particle_curr:
-                particle_pair += 1  # Adjusting for zero-based indexing
-
-            # Cross-index for symmetric connection
-            idx_other = particle_pair * n_particles + particle_curr
-            epsilon = 1e-2  # Small value to avoid division by zero
-
-            # Circular complexity calculation for particle pairs
-            complexity_circular += (1 / np.maximum((1 - connection_target_target[idx]), epsilon)) / np.maximum((1 - connection_target_target[idx_other]), epsilon)
-            # Marking indices as compared
-            already_compared.extend([idx, idx_other])
-    
-    # Final normalization of circular complexity
-    complexity_circular /= n_particles * (n_particles - 1) / 2  # Adjusting for total potential connections
-
-    # Combine complexities for total measure
-    total_complexity = complexity_base + complexity_interparticle + complexity_circular
-    return total_complexity
-
 
 
 def calculate_spatial_function_complexity(function_type, n_basis,
@@ -754,6 +708,15 @@ def calculate_parameter_values_complexity(parameters, weights, settings):
         settings["r_ct_bounds_temperature"])
     resistance_complexity += np.sum(np.exp((ln_R_ct - ln_R_max) / temperature)
                                     + np.exp((ln_R_min - ln_R_ct) / temperature))
+    n_complexities += len(parameters["particle_params"])
+
+    # Particle Lengths
+    ln_L_part = np.log([particle["L_part"] for particle in parameters["particle_params"]])
+    ln_L_part_min, ln_L_part_max, temperature = (
+        np.log(settings["l_part_min"]), np.log(settings["l_part_max"]),
+        settings["l_part_bounds_temperature"])
+    resistance_complexity += np.sum(np.exp((ln_L_part - ln_L_part_max) / temperature)
+                                    + np.exp((ln_L_part_min - ln_L_part) / temperature))
     n_complexities += len(parameters["particle_params"])
 
     complexities.append(resistance_complexity / n_complexities)
