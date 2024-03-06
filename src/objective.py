@@ -414,28 +414,32 @@ def calculate_connectivity_complexity(connection_source_target,
 
     Parameters
     ----------
-    connection_source_target : array_like
+    connection_source_target : numpy.ndarray
         Array containing the connection probabilities from source nodes to 
         target nodes within the network.
-    connection_drain_target : array_like
+    connection_drain_target : numpy.ndarray
         Array containing the connection probabilities from drain nodes to 
         target nodes within the network.
-    connection_target_target : array_like
+    connection_target_target : numpy.ndarray
         Array containing the connection probabilities between target nodes 
         within the network.
 
     Returns
     -------
     float
-        The normalized complexity of the network connections, calculated as the 
-        average of transformed connection probabilities across all network 
-        links.
+        The overall complexity of the network connections, calculated as the 
+        sum of individual complexities normalized by the total number of 
+        connection types.
 
-    Examples
-    --------
-    >>> calculate_connectivity_complexity(np.array([0.1, 0.5]), np.array([0.2,
-    0.5]), np.array([0.3, 0.5]))
-    Value representing the normalized complexity.
+    Notes
+    -----
+    The complexity is calculated by assessing different aspects:
+    - Normalized complexity for binary connections between nodes
+    - Ratio of interparticle to particle-backbone connections
+    - Circular complexity, evaluating the circular connections between particles
+
+    The function ensures that the complexity reflects variations in network 
+    topology and connectivity between particles.
     """
     
     # Combine all connection probabilities into a single array
@@ -443,45 +447,100 @@ def calculate_connectivity_complexity(connection_source_target,
                                   connection_drain_target,
                                   connection_target_target])
 
-    # Apply transformation to quantify complexity based on connection probabilities
+    # Initial complexity calculation based on negative cosine transformation
     complexity_0_or_1 = np.sum(-np.cos(2 * np.pi * connections) + 1)
-    
-    # Determine the total number of connections for normalization
-    n_connections = len(connection_source_target) + \
-        len(connection_drain_target) + len(connection_target_target)
+    n_connections = (len(connection_source_target)
+                     + len(connection_drain_target)
+                     + len(connection_target_target))
     complexity_0_or_1 /= n_connections
 
-    # complexity exists if the interparticle connections are significantly
-    # greater than the number of connections between the particles and the
-    # backbone
+    # Interparticle complexity contrasting connections between particles and to
+    # the backbone
     complexity_interparticle = np.exp(np.sum(connection_target_target) /
         (np.sum(connection_source_target)+np.sum(connection_drain_target)))
 
-    # define n_particles from the input
+    # Define the total number of particles for circular complexity calculation
     n_particles = len(connection_source_target)
+    complexity_circular = 0  # Initial circular complexity
+    already_compared = []  # Keeping track of compared index pairs to avoid redundancy
 
-    # if there is a pair of particles that are highly connected to each other,
-    # then we have a circular path that constitutes high complexity.
-    complexity_circular = 0
-    already_compared = []
+    # Calculate circular complexity based on paired connection probabilities
     for idx in range(len(connection_target_target)):
         if idx not in already_compared:
-            particle_curr = idx // 2
-            particle_pair = idx % 2
+            # Index decompositions to identify particle pairs
+            particle_curr = idx // (n_particles-1)
+            particle_pair = idx % (n_particles-1)
             if particle_pair >= particle_curr:
-                particle_pair += 1
-            
-            idx_other = particle_pair * 2 + particle_curr
-            epsilon = 1e-2
-            complexity_circular += (1
-                / np.max(((1-connection_target_target[idx]), epsilon))
-                / np.max(((1-connection_target_target[idx_other]), epsilon)))
-            
-    complexity_circular /= n_particles * (n_particles - 1) / 2
-        
+                particle_pair += 1  # Adjusting for zero-based indexing
 
-    # Return the average complexity normalized by the number of connections
-    return complexity_0_or_1 + complexity_interparticle + complexity_circular
+            # Cross-index for symmetric connection
+            idx_other = particle_pair * (n_particles - 1) + particle_curr
+            epsilon = 1e-2  # Small value to avoid division by zero
+
+            # Circular complexity calculation for particle pairs
+            complexity_circular += (1
+                / np.maximum((1-connection_target_target[idx]), epsilon)
+                / np.maximum((1-connection_target_target[idx_other]), epsilon))
+
+            # Marking indices as compared
+            already_compared.extend([idx, idx_other])
+    
+    # Final normalization of circular complexity
+    # Adjusting for total potential connections
+    complexity_circular /= (n_particles * (n_particles - 1) / 2)
+
+    # Combine complexities for total measure
+    total_complexity = complexity_0_or_1 + complexity_interparticle + complexity_circular
+
+    return total_complexity
+
+
+def calculate_connectivity_complexity(connection_source_target,
+                                      connection_drain_target,
+                                      connection_target_target):
+    
+    
+    # Combine all connection probabilities into a single array
+    connections = np.concatenate([connection_source_target, connection_drain_target, connection_target_target])
+
+    # Initial complexity calculation based on negative cosine transformation
+    complexity_base = np.sum(-np.cos(2 * np.pi * connections) + 1)
+    n_connections = len(connection_source_target) + len(connection_drain_target) + len(connection_target_target)
+    complexity_base /= n_connections  # Normalizing by total number of connections
+
+    # Interparticle complexity contrasting connections between particles and to the backbone
+    complexity_interparticle = np.exp(np.sum(connection_target_target) / (np.sum(connection_source_target) + np.sum(connection_drain_target)))
+
+    # Define the total number of particles for circular complexity calculation
+    n_particles = len(connection_source_target)
+    complexity_circular = 0  # Initial circular complexity
+    already_compared = []  # Keeping track of compared index pairs to avoid redundancy
+
+    # Calculate circular complexity based on paired connection probabilities
+    for idx in range(len(connection_target_target)):
+        if idx not in already_compared:
+            # Index decompositions to identify particle pairs
+            particle_curr = idx // n_particles
+            particle_pair = idx % n_particles
+            if particle_pair >= particle_curr:
+                particle_pair += 1  # Adjusting for zero-based indexing
+
+            # Cross-index for symmetric connection
+            idx_other = particle_pair * n_particles + particle_curr
+            epsilon = 1e-2  # Small value to avoid division by zero
+
+            # Circular complexity calculation for particle pairs
+            complexity_circular += (1 / np.maximum((1 - connection_target_target[idx]), epsilon)) / np.maximum((1 - connection_target_target[idx_other]), epsilon)
+            # Marking indices as compared
+            already_compared.extend([idx, idx_other])
+    
+    # Final normalization of circular complexity
+    complexity_circular /= n_particles * (n_particles - 1) / 2  # Adjusting for total potential connections
+
+    # Combine complexities for total measure
+    total_complexity = complexity_base + complexity_interparticle + complexity_circular
+    return total_complexity
+
 
 
 def calculate_spatial_function_complexity(function_type, n_basis,
