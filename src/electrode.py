@@ -268,7 +268,7 @@ def calculate_porous_electrode_impedance(
 
     # # Create the Nyquist plot
     # plt.figure()
-    # plt.plot(Z_porous_electrode.real, -Z_porous_electrode.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
+    # plt.plot(Z_network.real, -Z_network.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
     # plt.xlabel('Re(Z) [Ohms]')
     # plt.ylabel('-Im(Z) [Ohms]')
     # plt.title('Nyquist Plot')
@@ -277,6 +277,8 @@ def calculate_porous_electrode_impedance(
 
     # # Display the plot
     # plt.draw()  # Draw the current figure
-    # plt.pause(5)  # Pause for a few seconds and update plot window  
+    # plt.pause(5)  # Pause for a few seconds and update plot window    
+
+    # plt.close()
 
     return Z_porous_electrode

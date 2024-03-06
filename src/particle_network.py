@@ -266,7 +266,7 @@ def calculate_single_particle_impedance(w, R_ct, C_dl, L_part, D_part,
 
     # # Create the Nyquist plot
     # plt.figure()
-    # plt.plot(Z.real, -Z.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
+    # plt.plot(Z_network.real, -Z_network.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
     # plt.xlabel('Re(Z) [Ohms]')
     # plt.ylabel('-Im(Z) [Ohms]')
     # plt.title('Nyquist Plot')
@@ -276,6 +276,8 @@ def calculate_single_particle_impedance(w, R_ct, C_dl, L_part, D_part,
     # # Display the plot
     # plt.draw()  # Draw the current figure
     # plt.pause(5)  # Pause for a few seconds and update plot window    
+
+    # plt.close()   
 
     return Z
 
@@ -489,6 +491,7 @@ def calculate_particle_network_impedance(w, n_particles,
     # plt.draw()  # Draw the current figure
     # plt.pause(5)  # Pause for a few seconds and update plot window    
 
+    # plt.close()
 
     return Z_network
 
