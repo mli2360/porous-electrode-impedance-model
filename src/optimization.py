@@ -64,8 +64,9 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
         # Calculate acceptance probability
         # Assuming a symmetric proposal distribution here
         temperature = burn_temperatures[idx]
-        acceptance_probability = np.min((1, np.exp((current_objective - proposal_objective) / temperature)))
-
+        acceptance_probability = np.minimum(
+            1, np.exp((current_objective - proposal_objective) / temperature))
+        
         # Accept or reject the new state
         if np.random.rand() < acceptance_probability:
             x_current = x_proposal
@@ -79,16 +80,16 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
 
         burn_samples.append(x_current)
 
-        if idx % settings["display_frequency"] == 0:
-            print(f"Burn-in Sample {idx} of {settings['burn_length']}. Temperature {temperature}")
+        if (idx+1) % settings["display_frequency"] == 0:
+            print(f"Burn-in Sample {(idx+1)} of {settings['burn_length']}. Temperature {temperature}")
             print(f"Current Objective Value - {current_objective}")
             print(f"Current Parameters - {x_current}")
             print('\n')
-        if idx % settings["plot_frequency"] == 0:
-            plot_name = state + f"_{idx}_of_{settings['burn_length']}"
+        if (idx+1) % settings["plot_frequency"] == 0:
+            plot_name = state + f"_{(idx+1)}_of_{settings['burn_length']}"
             create_impedance_plot(data, predicted_eis, plot_types, plot_save_dir,
                               plot_name=plot_name, extensions=['jpg', 'svg'])
-        if idx % settings["save_frequency"] == 0:
+        if (idx+1) % settings["save_frequency"] == 0:
             burn_acceptance_rate = n_accept / (idx + 1)
             with open(results_file_path, 'wb') as file:  # 'wb' stands for 'write binary'
                 # Package your variables into a dictionary or a list
@@ -111,12 +112,14 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
     for idx in range(settings["chain_length"]):
         # Propose a new state
         x_proposal = x_current + delx * np.random.randn(*x_current.shape)
-        proposal_objective = calculate_objective_function(x_proposal, *args)
-
+        proposal_objective, predicted_eis = \
+            calculate_objective_function(x_proposal, *args)
+        
         # Calculate acceptance probability
         # Assuming a symmetric proposal distribution here
         temperature = settings["temperature"]
-        acceptance_probability = np.min((1, np.exp((current_objective - proposal_objective) / temperature)))
+        acceptance_probability = np.minimum(
+            1, np.exp((current_objective - proposal_objective) / temperature))
         
         # Accept or reject the new state
         if np.random.rand() < acceptance_probability:
@@ -131,16 +134,16 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
 
         samples.append(x_current)
 
-        if idx % settings["display_frequency"] == 0:
-            print(f"Sample {idx} of {settings['chain_length']}. Temperature {temperature}")
+        if (idx+1) % settings["display_frequency"] == 0:
+            print(f"Sample {(idx+1)} of {settings['chain_length']}. Temperature {temperature}")
             print(f"Current Objective Value - {current_objective}")
             print(f"Current Parameters - {x_current}")
             print('\n')
-        if idx % settings["plot_frequency"] == 0:
-            plot_name = state + f"_{idx}_of_{settings['chain_length']}"
+        if (idx+1) % settings["plot_frequency"] == 0:
+            plot_name = state + f"_{(idx+1)}_of_{settings['chain_length']}"
             create_impedance_plot(data, predicted_eis, plot_types, plot_save_dir,
                               plot_name=plot_name, extensions=['jpg', 'svg'])
-        if idx % settings["save_frequency"] == 0:
+        if (idx+1) % settings["save_frequency"] == 0:
             acceptance_rate = n_accept / (idx + 1)
             with open(results_file_path, 'wb') as file:  # 'wb' stands for 'write binary'
                 # Package your variables into a dictionary or a list
@@ -159,10 +162,10 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
                 pickle.dump(variables, file)
 
     # plot and display final results
-    current_objective, predicted_eis_current = \
-        calculate_objective_function(x_current, *args)
-    best_objective, predicted_eis_best = \
-        calculate_objective_function(x_best, *args)
+    current_objective, predicted_eis_current = calculate_objective_function(
+        x_current, *args)
+    best_objective, predicted_eis_best = calculate_objective_function(
+        x_best, *args)
     
     print('\n')
     print(f"Final Objective Value - {current_objective}")
