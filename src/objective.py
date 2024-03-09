@@ -255,20 +255,33 @@ def calculate_misfit_residual(measured_eis, predicted_eis, setting):
     # Initialize misfit residual
     misfit_residual = 0
     
+    # Split settings into error setting and normalization setting
+    setting_split = setting.split("-")
+    error_setting = setting_split[0]
+    if len(setting_split) == 2:
+        normalization_setting = setting_split[1]
+    else:
+        normalization_setting = None
+    
     # Calculate normalization factor to avoid division by zero
     normalization = np.sqrt(measured_eis['Re(Z)/Ohm']**2
                             + measured_eis['-Im(Z)/Ohm']**2)
-    
+    if normalization_setting is not None:
+        normalization_correction = np.maximum(
+            (np.log(np.abs(measured_eis['Re(Z)/Ohm']))
+            + np.log(np.abs(measured_eis['-Im(Z)/Ohm']))), 1)
+        normalization /= normalization_correction
+
     # Ensure no division by zero
     normalization = np.where(normalization == 0, np.nan, normalization)
     
     # Calculate least square error based on setting
-    if setting in ["ReOnly", "ImOnly", "ReIm"]:
+    if error_setting in ["ReOnly", "ImOnly", "ReIm"]:
         errors = []
-        if setting in ["ReOnly", "ReIm"]:
+        if error_setting in ["ReOnly", "ReIm"]:
             errors.append((measured_eis['Re(Z)/Ohm'] - predicted_eis['Re(Z)/Ohm']) 
                           / normalization)
-        if setting in ["ImOnly", "ReIm"]:
+        if error_setting in ["ImOnly", "ReIm"]:
             errors.append((measured_eis['-Im(Z)/Ohm'] - predicted_eis['-Im(Z)/Ohm'])
                           / normalization)
         
@@ -287,8 +300,8 @@ def calculate_misfit_residual(measured_eis, predicted_eis, setting):
     return misfit_residual
 
 
-def calc(params, setting, scale=None, 
-                                    expected_values=None, weights=None):
+def calc_norm_complexity(params, setting, scale=None, expected_values=None,
+                         weights=None):
     """
     Calculates the complexity of a parameter set based on a specified setting,
     optionally adjusting parameters by scaling and shifting.
@@ -632,12 +645,12 @@ def calculate_parameter_values_complexity(parameters, weights, settings):
     # Connection probabilities complexity
     temperature = settings["connectivity_bounds_temperature"]
     connections_complexity = (
-        np.sum(np.exp((0 - parameters['connectivity_source_target']) / temperature))
-        + np.sum(np.exp((parameters['connectivity_source_target'] - 1) / temperature))
-        + np.sum(np.exp((0 - parameters['connectivity_drain_target']) / temperature))
-        + np.sum(np.exp((parameters['connectivity_drain_target'] - 1) / temperature))
-        + np.sum(np.exp((0 - parameters['connectivity_target_target']) / temperature))
-        + np.sum(np.exp((parameters['connectivity_target_target'] - 1) / temperature))
+        np.sum(np.exp((-0.0 - parameters['connectivity_source_target']) / temperature))
+        + np.sum(np.exp((parameters['connectivity_source_target'] - 1.1) / temperature))
+        + np.sum(np.exp((-0.0 - parameters['connectivity_drain_target']) / temperature))
+        + np.sum(np.exp((parameters['connectivity_drain_target'] - 1.1) / temperature))
+        + np.sum(np.exp((-0.0 - parameters['connectivity_target_target']) / temperature))
+        + np.sum(np.exp((parameters['connectivity_target_target'] - 1.1) / temperature))
     )
     n_variables = (
         len(parameters['connectivity_source_target'])
