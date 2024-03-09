@@ -9,58 +9,6 @@ from src.functions import evaluate_parameters
 import matplotlib.pyplot as plt
 import time
 
-def check_particle_parameters(n_particles, particle_parameters, required_fields):
-    """
-    Validates whether each particle's parameters contain all the required
-    fields.
-
-    This function ensures that the provided particle parameters for all
-    particles being simulated contain the necessary fields. It checks that the
-    number of parameter sets matches the expected number of particles and that
-    each parameter set includes all required fields.
-
-    Parameters
-    ----------
-    n_particles : int
-        The expected number of particles for which parameters should be
-        provided.
-    particle_parameters : list of dict
-        A list containing the parameter dictionaries for each particle. Each
-        dictionary in the list corresponds to the parameters for one particle.
-    required_fields : list of str
-        A list of strings representing the keys that must be present in each
-        particle's parameter dictionary.
-
-    Raises
-    ------
-    ValueError
-        If the number of parameter dictionaries provided does not match
-        `n_particles`, or if any of the required fields are missing from any
-        particle's parameter dictionary.
-
-    Returns
-    -------
-    None
-    """
-
-    # Validate if the length of particle_parameters matches the expected number
-    # of particles
-    if n_particles != len(particle_parameters):
-        raise ValueError(f"Mismatch between expected {n_particles} parameter "
-                         "dictionaries and the provided particle parameters.")
-
-    # Check for missing required fields in each particle's parameters
-    missing_fields = []
-    for i in range(n_particles):
-        for field in required_fields:
-            if field not in particle_parameters[i]:
-                missing_fields.append(f'Particle {i}: {field}')
-
-    # Raise error if there are any missing fields
-    if missing_fields:
-        raise ValueError(f"Missing fields in the particle parameters"
-                         f": {missing_fields}")
-    
 
 def define_particle_network_connectivity_matrix(n_particles, connectivity_bool):
     """
@@ -198,7 +146,7 @@ def generate_connectivity_matrix(n_particles, connectivity_weights):
 def calculate_single_particle_impedance(w, R_ct, C_dl, L_part, D_part, 
                                         D_part_coefficients,
                                         function_type, n_basis,
-                                        n_samples, geometry):
+                                        n_samples, geometry, epsilon=1e-10):
     """
     Calculates the impedance of a single particle using a Randles circuit model
     This function considers the interfacial charge transfer, ion storage in the
@@ -264,6 +212,16 @@ def calculate_single_particle_impedance(w, R_ct, C_dl, L_part, D_part,
     # Calculate total impedance for the single particle at every frequency
     Z = 1 / (1 / (Z_ct + Z_warburg) + 1 / Z_dl)
 
+    # Bound the determined impedance values between 1/epsilon to epsilon to
+    # prevent 0 based division errors in other functions
+    phases, magnitudes = np.angle(Z), np.abs(Z)
+    bounded_magnitudes = np.where(magnitudes > 1/epsilon, 1/epsilon, magnitudes)
+    bounded_magnitudes = np.where(magnitudes < epsilon, epsilon, magnitudes)
+    Z = bounded_magnitudes * np.exp(1j * phases)
+
+    # set name of the final output
+    Z_single_particle = Z
+
     # # Create the Nyquist plot
     # plt.figure()
     # plt.plot(Z_network.real, -Z_network.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
@@ -276,10 +234,9 @@ def calculate_single_particle_impedance(w, R_ct, C_dl, L_part, D_part,
     # # Display the plot
     # plt.draw()  # Draw the current figure
     # plt.pause(5)  # Pause for a few seconds and update plot window    
+    # plt.close()
 
-    # plt.close()   
-
-    return Z
+    return Z_single_particle
 
 
 def pull_particle_network_relevant_numbers(num_particles):
@@ -394,7 +351,7 @@ def calculate_particle_network_impedance(w, n_particles,
                                          R_network, connectivity_matrix,
                                          R_ct, C_dl, L_part, D_part,
                                          particle_params, particle_params_coefficients,
-                                         inputs=None):
+                                         inputs=None, epsilon=1e-10):
     """
     Calculates the impedance of a network of particles within a porous
     electrode.
@@ -440,7 +397,7 @@ def calculate_particle_network_impedance(w, n_particles,
     _, _, n_variables = pull_particle_network_relevant_numbers(n_particles)
 
     # Initialize the output impedance array
-    Z_network = np.zeros_like(w, dtype=np.cdouble)
+    Z = np.zeros_like(w, dtype=np.cdouble)
 
     # Validate the size of the resistance network
     if R_network.size != n_variables:
@@ -476,8 +433,18 @@ def calculate_particle_network_impedance(w, n_particles,
             R_network
         )
         admittance_matrix = raw_admittance_matrix.multiply(connectivity_matrix)
-        Z_network[idx] = calculate_equivalent_impedance(admittance_matrix)
+        Z[idx] = calculate_equivalent_impedance(admittance_matrix)
     
+    # Bound the determined impedance values between 1/epsilon to epsilon to
+    # prevent 0 based division errors in other functions
+    phases, magnitudes = np.angle(Z), np.abs(Z)
+    bounded_magnitudes = np.where(magnitudes > 1/epsilon, 1/epsilon, magnitudes)
+    bounded_magnitudes = np.where(magnitudes < epsilon, epsilon, magnitudes)
+    Z = bounded_magnitudes * np.exp(1j * phases)
+
+    # set name of the final output
+    Z_network = Z
+
     # # Create the Nyquist plot
     # plt.figure()
     # plt.plot(Z_network.real, -Z_network.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
@@ -490,7 +457,6 @@ def calculate_particle_network_impedance(w, n_particles,
     # # Display the plot
     # plt.draw()  # Draw the current figure
     # plt.pause(5)  # Pause for a few seconds and update plot window    
-
     # plt.close()
 
     return Z_network
