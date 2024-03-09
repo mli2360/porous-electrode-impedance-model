@@ -730,7 +730,7 @@ def check_inputs_objective(inputs):
 
         # Check fields for misfit settings
         elif field == 'misfit_setting':
-            if value not in ['ReOnly', 'ImOnly', 'ReIm']:
+            if value not in ['ReOnly', 'ImOnly', 'ReIm', 'ReIm-lfbias']:
                 raise ValueError("Field 'misfit_setting' must be one of "
                                  "['ReOnly', 'ImOnly', 'ReIm'].")
 
@@ -1210,7 +1210,7 @@ def pack_inputs(inputs):
         if bool_spatial_variations["Electrode"][field]:
             for coeffs in inputs["Electrode"][field+'_coefficients']:
                 x = np.append(x, coeffs)
-                delx = np.append(delx, np.full(n_basis, 0.1))
+                delx = np.append(delx, np.full(n_basis, 0.05))
     
     # Particle Scale
     for idx in range(n_particles):
@@ -1225,26 +1225,26 @@ def pack_inputs(inputs):
         if bool_spatial_variations["Particle"]["d_part"]:
             coeffs = inputs["Particle"]["d_part_coefficients"][idx]
             x = np.append(x, coeffs)
-            delx = np.append(delx, np.full(n_basis, 0.1))
+            delx = np.append(delx, np.full(n_basis, 0.05))
     
         # variations on the electrode scale
         fields = ['r_ct', 'c_dl', 'l_part']
         for field in fields:
             if bool_spatial_variations["Electrode"][field]:
-                coeffs = inputs["Electrode"][field+'_coefficients']
+                coeffs = inputs["Electrode"][field+'_coefficients'][idx]
                 x = np.append(x, coeffs)
-                delx = np.append(delx, np.full(n_basis, 0.1))
+                delx = np.append(delx, np.full(n_basis, 0.05))
         fields = ['d_part']
         for field in fields:
             if bool_spatial_variations["Electrode"][field]:
-                coeffs = inputs["Electrode"][field+'_coefficients']
+                coeffs = inputs["Electrode"][field+'_coefficients'][idx]
                 if bool_spatial_variations["Particle"][field]:
                     for coeff in coeffs:
                         x = np.append(x, coeff)
-                        delx = np.append(delx, np.full(n_basis, 0.1))
+                        delx = np.append(delx, np.full(n_basis, 0.05))
                 else:
                     x = np.append(x, coeffs)
-                    delx = np.append(delx, np.full(n_basis, 0.1))
+                    delx = np.append(delx, np.full(n_basis, 0.05))
 
     return x, delx, bool_spatial_variations
 
