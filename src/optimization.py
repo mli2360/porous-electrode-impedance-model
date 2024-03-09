@@ -39,8 +39,8 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
     
     # Initialize current and best states
     x_current = x_best = np.array(x0)
-    current_objective = best_objective = \
-        calculate_objective_function(x_current, *args)[0]
+    current_objective, predicted_eis = calculate_objective_function(x_current, *args)
+    best_objective, best_eis = calculate_objective_function(x_current, *args)
     burn_samples = [x_current]
     n_accept = 0
 
@@ -77,6 +77,7 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
         if current_objective < best_objective:
             best_objective = current_objective
             x_best = x_current
+            best_eis = predicted_eis
 
         burn_samples.append(x_current)
 
@@ -86,10 +87,14 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
             print(f"Current Parameters - {x_current}")
             print('\n')
         if (idx+1) % settings["plot_frequency"] == 0:
+            print('Saving Plot')
+            print('\n')
             plot_name = state + f"_{(idx+1)}_of_{settings['burn_length']}"
             create_impedance_plot(data, predicted_eis, plot_types, plot_save_dir,
                               plot_name=plot_name, extensions=['jpg', 'svg'])
         if (idx+1) % settings["save_frequency"] == 0:
+            print('Saving Data')
+            print('\n')
             burn_acceptance_rate = n_accept / (idx + 1)
             with open(results_file_path, 'wb') as file:  # 'wb' stands for 'write binary'
                 # Package your variables into a dictionary or a list
@@ -101,6 +106,9 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
                     'burn_samples' : np.array(burn_samples),
                     'burn_acceptance_rate' : burn_acceptance_rate,
                     'temperature' : temperature,
+                    'measured_eis' : data,
+                    'best_eis' : best_eis,
+                    'current_eis' : predicted_eis,
                 }
                 # Use pickle.dump() to write the object to the file
                 pickle.dump(variables, file)
@@ -131,6 +139,7 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
         if current_objective < best_objective:
             best_objective = current_objective
             x_best = x_current
+            best_eis = predicted_eis
 
         samples.append(x_current)
 
@@ -140,10 +149,14 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
             print(f"Current Parameters - {x_current}")
             print('\n')
         if (idx+1) % settings["plot_frequency"] == 0:
+            print('Saving Plot')
+            print('\n')
             plot_name = state + f"_{(idx+1)}_of_{settings['chain_length']}"
             create_impedance_plot(data, predicted_eis, plot_types, plot_save_dir,
                               plot_name=plot_name, extensions=['jpg', 'svg'])
         if (idx+1) % settings["save_frequency"] == 0:
+            print('Saving Data')
+            print('\n')
             acceptance_rate = n_accept / (idx + 1)
             with open(results_file_path, 'wb') as file:  # 'wb' stands for 'write binary'
                 # Package your variables into a dictionary or a list
@@ -157,6 +170,9 @@ def metropolis_hastings_mcmc(x0, delx, calculate_objective_function, args,
                     'samples' : np.array(samples),
                     'acceptance_rate' : acceptance_rate,
                     'temperature' : temperature,
+                    'measured_eis' : data,
+                    'best_eis' : best_eis,
+                    'current_eis' : predicted_eis,
                 }
                 # Use pickle.dump() to write the object to the file
                 pickle.dump(variables, file)
