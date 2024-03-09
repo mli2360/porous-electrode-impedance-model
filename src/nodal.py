@@ -1,7 +1,8 @@
 import numpy as np
+import warnings
 from scipy.sparse import issparse, csr_matrix
 
-def calculate_equivalent_impedance(admittance_matrix, Vs=1, Vt=0):
+def calculate_equivalent_impedance(admittance_matrix, Vs=1, Vt=0, epsilon=1e-10):
     """
     Calculates the equivalent impedance from an admittance matrix, ensuring the
     matrix represents a well-posed physical network.
@@ -55,7 +56,7 @@ def calculate_equivalent_impedance(admittance_matrix, Vs=1, Vt=0):
     # Check if source or drain node has no connections to other nodes
     if (np.all(admittance_matrix[0, :] == 0) 
         or np.all(admittance_matrix[-1, :] == 0)):
-        return np.inf
+        return 1 / epsilon
 
     # Modify Vs for phase adjustment if necessary
     Vs = Vs * np.exp(1j*0.4)  # Uncomment if phase adjustment is required
@@ -81,15 +82,27 @@ def calculate_equivalent_impedance(admittance_matrix, Vs=1, Vt=0):
 
     # Check if the condition number is too high, indicating singularity
     if cond_number > 1 / 1e-12:
-        return np.inf
+        return 1 / epsilon
     
     # Solve for node voltages excluding source and drain
     V_mid = np.linalg.solve(L_mod, I)
     
     # Calculate total current flowing from source to drain
     I_total = np.dot(admittance_matrix[0, 1:], Vs-np.append(V_mid, Vt))
+    if np.abs(I_total) < epsilon:
+        I_total = epsilon * np.exp(1j * np.angle(I_total))
     
     # Calculate equivalent impedance
-    Z_eq = (Vs - Vt) / I_total
+    Z = (Vs - Vt) / I_total
+    
+    # Bound the determined impedance values between 1/epsilon to epsilon to
+    # prevent 0 based division errors in other functions
+    phases, magnitudes = np.angle(Z), np.abs(Z)
+    bounded_magnitudes = np.where(magnitudes > 1/epsilon, 1/epsilon, magnitudes)
+    bounded_magnitudes = np.where(magnitudes < epsilon, epsilon, magnitudes)
+    Z = bounded_magnitudes * np.exp(1j * phases)
+
+    # set name of the final output
+    Z_eq = Z
 
     return Z_eq
