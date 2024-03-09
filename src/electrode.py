@@ -14,7 +14,7 @@ def calculate_electrode_volume_impedance(w, C_lyte, n_particles,
                                          R_ct, C_dl, L_part, D_part,
                                          particle_params,
                                          particle_params_coefficients,
-                                         inputs=None):
+                                         inputs=None, epsilon=1e-10):
     """
     Calculates the impedance of an electrode volume in a porous electrode model.
 
@@ -80,11 +80,21 @@ def calculate_electrode_volume_impedance(w, C_lyte, n_particles,
     
     # Aggregate the impedances to get the total impedance for the electrode
     # volume
-    Z_electrode_volume = 1 / (1 / Z_pseudocapacitance + 1 / Z_particle_network)
+    Z = 1 / (1 / Z_pseudocapacitance + 1 / Z_particle_network)
+
+    # Bound the determined impedance values between 1/epsilon to epsilon to
+    # prevent 0 based division errors in other functions
+    phases, magnitudes = np.angle(Z), np.abs(Z)
+    bounded_magnitudes = np.where(magnitudes > 1/epsilon, 1/epsilon, magnitudes)
+    bounded_magnitudes = np.where(magnitudes < epsilon, epsilon, magnitudes)
+    Z = bounded_magnitudes * np.exp(1j * phases)
+
+    # set name of the final output
+    Z_electrode_volume = Z
 
     # # Create the Nyquist plot
     # plt.figure()
-    # plt.plot(Z_electrode_volume.real, -Z_electrode_volume.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
+    # plt.plot(Z_network.real, -Z_network.imag, 'o-', markersize=8)  # 'o-' for line with circle markers
     # plt.xlabel('Re(Z) [Ohms]')
     # plt.ylabel('-Im(Z) [Ohms]')
     # plt.title('Nyquist Plot')
@@ -93,8 +103,9 @@ def calculate_electrode_volume_impedance(w, C_lyte, n_particles,
 
     # # Display the plot
     # plt.draw()  # Draw the current figure
-    # plt.pause(5)  # Pause for a few seconds and update plot window  
-
+    # plt.pause(5)  # Pause for a few seconds and update plot window    
+    # plt.close()
+    
     return Z_electrode_volume
 
 
@@ -107,7 +118,7 @@ def calculate_porous_electrode_impedance(
         R_source_target_coefficients, R_drain_target_coefficients, 
         R_target_target_coefficients, 
         particle_params, particle_params_coefficients,
-        n_samples=100, inputs=None):
+        n_samples=100, inputs=None, epsilon=1e-10):
     """
     Calculates the impedance of a porous electrode incorporating spatial 
     variations and electrochemical properties.
@@ -261,10 +272,20 @@ def calculate_porous_electrode_impedance(
         )
 
     # Calculate the overall porous electrode impedance
-    Z_porous_electrode = impedance_transmission_line(
+    Z = impedance_transmission_line(
         w, n_samples, Z_series, Z_parallel, geometry='planar'
     )
-    Z_porous_electrode += R_bulk
+    Z += R_bulk
+
+    # Bound the determined impedance values between 1/epsilon to epsilon to
+    # prevent 0 based division errors in other functions
+    phases, magnitudes = np.angle(Z), np.abs(Z)
+    bounded_magnitudes = np.where(magnitudes > 1/epsilon, 1/epsilon, magnitudes)
+    bounded_magnitudes = np.where(magnitudes < epsilon, epsilon, magnitudes)
+    Z = bounded_magnitudes * np.exp(1j * phases)
+
+    # set name of the final output
+    Z_porous_electrode = Z
 
     # # Create the Nyquist plot
     # plt.figure()
@@ -278,7 +299,6 @@ def calculate_porous_electrode_impedance(
     # # Display the plot
     # plt.draw()  # Draw the current figure
     # plt.pause(5)  # Pause for a few seconds and update plot window    
-
     # plt.close()
 
     return Z_porous_electrode
